@@ -8,7 +8,7 @@
     is to reproduce our data structures in mass
 */
 
-GRAPH *createGraph(char *name)
+GRAPH *createGraph(char *name, void *metadata)
 {
     GRAPH *newG = (GRAPH*)malloc(sizeof(GRAPH));     // Basic function to initialize our graph
     if(!newG)
@@ -16,6 +16,7 @@ GRAPH *createGraph(char *name)
     newG->name = strdup(name);
     newG->currentNode = NULL;
     newG->hashTable = initHash(0);                   // Function from the hash library
+    newG->metadata = metadata;
     return newG;
 }
 

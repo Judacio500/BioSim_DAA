@@ -65,6 +65,7 @@ typedef struct graph
                                     // List that includes the keys to each subgraph inside the graph
                                     // We can define a subgraph as a number of nodes that share a connection but are not connected with
                                     // a different cluster of nodesw
+    void *metadata;
 } GRAPH;
 
 // Function Prototypes
