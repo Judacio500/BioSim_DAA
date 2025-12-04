@@ -1,0 +1,16 @@
+/*
+
+    Este folder guarda todos los bocetos de las funciones
+    de creacion de estructuras dinamicas propias del proyecto
+
+    STRUCT METADATA
+    STRUCT PERSON
+    STRUCT CITY
+    STRUCT VIRUS
+    STRUCT CONTAGION
+    STRUCT DIJKSTRA STATE
+
+    El funcionamiento de estas funciones es inicializar las estructuras
+    con ciertos parametros y devolver el puntero asignado a estas
+
+*/
