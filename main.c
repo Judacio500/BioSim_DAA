@@ -10,10 +10,13 @@
 #include"hash.h"
 #include"heap.h"
 
+VIRUS viruses[50];
+
 typedef enum 
 {
     SUSCEPTIBLE,
     INFECTADO,
+    VACUNADO,
     RECUPERADO,
     FALLECIDO
 } HealthState;
@@ -47,7 +50,7 @@ typedef struct person
     char name[100];     // Nombre de la persona / Tambien parte de su clave hash en el grafo 
                         // Se tomo esta decision porque un nombre es muy largo para ser una llave Hash
     
-    char *cityKey;      // Llave de la ciudad en la que reside este individuo utilizable en el hash
+    char cityKey[50];      // Llave de la ciudad en la que reside este individuo utilizable en el hash
     
     HealthState state;       // Estado actual (Sano, Infectado, etc.)
     int daysInfected;        // Contador para saber cuándo se recupera (vs virus->recovery)
@@ -60,7 +63,8 @@ typedef struct person
 
 }PERSON;
 
-typedef struct contagion {
+typedef struct contagion    // Log de contagios, cuando una persona da positivo:
+{
     int day;                // Día de la simulación en que ocurrió
     
     // Guardamos nombres/IDs para que el registro persista 
@@ -72,19 +76,12 @@ typedef struct contagion {
     char targetName[100];
     
     char virusName[50];     // Cepa involucrada
-} CONTAGION;
+}CONTAGION;
 
 typedef struct metadata
 {
     struct person **population; // Array intacto de todas las personas en esta ciudad
     int nPopulation;            // Cantidad de personas en esta ciudad
-
-    struct list *utilities;   // Lista de utilidade
-                              // Bien la podemos usar como una lista o como una Lista de Listas
-                              // para mas opciones, ejemplo: 
-                              // En el grafo de ciudades necesito las cepas y una lista de utilidad por ejemplo para ordenar las ciudades
-                              // de mas a menos contagiados
-    
     struct list *infectedList;      // Lista rápida de infectados activos
     struct list *quarantineList;    // Lista rápida de gente aislada
     struct queue *contagionHistory; // Cola que guarda el historial de contagios, ordenado por defecto segun el dia en el que sucedio
@@ -106,4 +103,10 @@ MD *createMetadata();
 // Sus nodos son ciudades
 // La clave hash de cada ciudad es su nombre
 // Global porque no usamos multi hilo :D
-GRAPH *cities = createGraph("Ciudades", createMetadata());
+GRAPH *map = NULL;
+
+int main(int argc, char const *argv[])
+{
+
+}
+
