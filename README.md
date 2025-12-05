@@ -14,7 +14,7 @@ El objetivo es cargar la "BD" desde un archivo de texto, instanciar las estructu
 - [x] `PERSON **mergeSort(PERSON **arr, int low, int high)`: Algoritmo 1 .
 - [x] `PERSON **quickSort(PERSON **arr, int low, int high)`: Algoritmo 2 .
 - [x] `PERSON **heapSort(PERSON **arr, int n)`: Algoritmo 3 (Usando librería `heap.h`).
-- [ ] `void *populateGraphs(GRAPH *cities)`: Inserta nodos y aristas en el grafo desde el array ordenado.
+- [x] `int interCityConections()`: Inserta nodos y aristas en el grafo entre ciudades.
 
 ## 2. Detección de Brotes
 **Explicación:**
