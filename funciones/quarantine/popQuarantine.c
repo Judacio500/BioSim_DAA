@@ -17,11 +17,13 @@ int compareRecovery(void *a, void *b)
     return (p1->daysInfected > p2->daysInfected);
 }
 
-void releaseRecovered(CITY *c)
+int releaseRecovered(CITY *c)
 {
-    if(!c) return;
+    if(!c) 
+        return -1;
     MD *meta = (MD*)c->people->metadata;
-    if(meta->quarantined == 0) return;
+    if(meta->quarantined == 0) 
+        return -1;
 
     // Borrado seguro al reves
     for(int i = meta->quarantined - 1; i >= 0; i--)
@@ -49,4 +51,6 @@ void releaseRecovered(CITY *c)
         // mergeSort devuelve una copia asi que no lo necesitamos aqui
         mSort(meta->quarantineArray, 0, meta->quarantined - 1);
     }
+
+    return 0;
 }
