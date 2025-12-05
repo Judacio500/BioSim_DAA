@@ -33,7 +33,8 @@ Avanzar el tiempo $t \to t+1$, gestionando nuevos contagios y recuperaciones.
     * **Contagio:** Probabilístico sobre vecinos. Si contagia -> Crear `CONTAGION`, encolar en `Queue` y añadir vecino a infectados.
 
 **Checklist:**
-- [ ] `void stepSimulation(GRAPH *cities)`: Controla el ciclo de vida, contagios y registro en historial.
+- [x] `void simulationCallback(void *data, void *param)`: Callback para el recorrido DFS, permite calcular todo lo relevante en el mapa
+- [x] `int stepSimulation(int day)`: Gestor del dia simulado para calculos
 
 ## 4. Minimización del Riesgo Total
 **Explicación:**
@@ -41,7 +42,7 @@ Aislar nodos claves (Cuarentena) usando un enfoque Greedy.
 * **Estrategia:** Calcular riesgo individual y usar un **MaxHeap** temporal para seleccionar los nodos más peligrosos según el presupuesto.
 
 **Checklist:**
-- [x] `void releaseRecovered(CITY *c)`: Criterio de orden en la cuarentena segun la recuperacion.
+- [x] `int releaseRecovered(CITY *c)`: Criterio de orden en la cuarentena segun la recuperacion.
 - [x] `int applySmartQuarantine(CITY *c, int budget)`: Mantener en cuarentena a las personas de mayor riesgo global.
 
 ## 5. Identificación de Rutas Críticas (Dijkstra)
