@@ -12,7 +12,7 @@
 
 VIRUS viruses[50];
 
-// Constantes para la ruta y extensión
+// Para la ruta y extensión
 char *path = "Ciudades/";
 char *ext = ".txt";
 
@@ -43,6 +43,7 @@ char *cityNames[] =
 
 int nCities = 20;
 char keyBuffer[20];
+int eCrit = 0; // Criterio de evaluacion de personas
 
 typedef enum 
 {
@@ -127,8 +128,6 @@ typedef struct city
     
     GRAPH *people; // El grafo interno de personas
 }CITY;
-
-int eCrit = 0; // Criterio de evaluacion de personas
 
 MD *createMetadata();
 
