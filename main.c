@@ -116,8 +116,9 @@ typedef struct metadata
 {
     struct person **population; // Array intacto de todas las personas en esta ciudad
     int nPopulation;            // Cantidad de personas en esta ciudad
+    int quarantined;
     struct list *infectedList;      // Lista rápida de infectados activos
-    struct list *quarantineList;    // Lista rápida de gente aislada
+    struct person **quarantineList; // Array de "en cuarentena" como los espacios para cuarentena seran limitados esto es una decision de diseño perfecta 
     struct queue *contagionHistory; // Cola que guarda el historial de contagios, ordenado por defecto segun el dia en el que sucedio
 }MD;
 

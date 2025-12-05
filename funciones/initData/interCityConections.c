@@ -42,6 +42,22 @@ int generateInterCityConnections()
             CITY *cityB = (CITY*)nodeB->data;
             MD *metaB = (MD*)cityB->people->metadata;
 
+            // Garantizamos la primera conexion entre ciudades
+            // lo que se traduce a que todo el grafo siempre
+            // SIEMPRE, esta conectado
+
+            int rA = rand() % metaA->nPopulation;
+            int rB = rand() % metaB->nPopulation;
+            
+            NODE *nA = hashNode(cityA->people, metaA->population[rA]->personKey);
+            NODE *nB = hashNode(cityB->people, metaB->population[rB]->personKey);
+            
+            if(nA && nB)
+            {
+                 float w = (float)((rand() % 3) + 1) / 10.0f;
+                 addEdgeThrough(nA, nB, w, 2);
+            }
+
             // Dejamos fijo el numero de conexiones a un 2%
             int nConnections = (int)ceil(0.002 * cityB->population);
             if(nConnections < 1) nConnections = 1;
@@ -49,8 +65,8 @@ int generateInterCityConnections()
             // Para cada habitante de ciudad A
             for(int k = 0; k < metaA->nPopulation; k++)
             {
-                // Un 50% de tener conexiones en esa ciudad
-                if((rand() % 100) < 50) 
+                // Un 30% de tener conexiones en esa ciudad
+                if((rand() % 100) < 30) 
                 {
                     PERSON *pA = metaA->population[k];
 

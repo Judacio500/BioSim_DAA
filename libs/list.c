@@ -162,3 +162,20 @@ int freeQueue(QUEUE *q, Destructor destroy)
 
     return 0;
 }
+
+void *extract(LIST **l, void *search, Comparator compare)
+{
+    if(!l)
+        return NULL;
+
+    while(*l)
+    {
+        LIST *current = *l;
+        
+        if(compare(current->data,search))
+           return popData(l);
+        
+        l = &(*l)->next;
+    }
+    return NULL;
+}
