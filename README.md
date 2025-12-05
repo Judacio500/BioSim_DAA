@@ -22,7 +22,8 @@ Identificar clusters de infección activa sin recorrer todo el grafo ineficiente
 * **Estrategia:** Iterar únicamente la `infectedList` de la metadata para iniciar búsquedas locales (BFS) limitadas por profundidad o zona.
 
 **Checklist:**
-- [ ] `int detectOutbreak(GRAPH *peopleGraph)`: Itera infectados y retorna el tamaño del cluster conectado.
+- [x] `int detectOutbreak(GRAPH *peopleGraph)`: Itera infectados y retorna el tamaño del cluster conectado.
+- [x] `int bfsCluster(GRAPH *g, PERSON *start, HASH *visited)`: Funcion auxiliar de BFS para escanear las adyacencias.
 
 ## 3. Propagación Temporal (Simulación)
 **Explicación:**
