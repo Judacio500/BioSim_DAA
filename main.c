@@ -3,6 +3,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<string.h> 
+#include <math.h>
 
 // Librerias Personales
 #include"graph.h"

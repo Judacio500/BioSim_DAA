@@ -3,7 +3,8 @@
 
 #include<stdlib.h>
 
-typedef int weigh(void *current, void *insert);
+typedef int (*weigh)(void *current, void *insert);
+typedef int (*Destructor)(void *data);
 
 typedef struct queue
 {
@@ -27,5 +28,6 @@ LIST *pop(LIST **l);
 void *popData(LIST **l);
 LIST *dequeue(QUEUE *q);
 void *dequeueData(QUEUE *q);
+int freeList(LIST **l, Destructor destroy);
 
 #endif

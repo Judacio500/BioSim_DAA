@@ -137,3 +137,28 @@ void *dequeueData(QUEUE *q)
 
     return data;
 }
+
+int freeList(LIST **l, Destructor destroy)
+{
+    while(*l)
+    {
+        void *data = popData(l); // Eventualmente l->NULL
+
+        if(destroy)              // Si no pasamos destructor los datos dentro de la lista no se destruyen
+            destroy(data);       // solo la envoltura, esto es relevante porque hay datos que viven en otra
+                                 // estructura y que pueden necesitarse en una lista solo temporalmente
+    }
+
+    return 0;
+}
+
+int freeQueue(QUEUE *q, Destructor destroy)
+{
+    if(!q)
+        return -1;
+
+    freeList(&q->first, destroy); //Liberamos su lista
+    free(q);
+
+    return 0;
+}
