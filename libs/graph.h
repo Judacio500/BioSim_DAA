@@ -69,7 +69,7 @@ typedef struct graph
 } GRAPH;
 
 // Function Prototypes
-GRAPH *createGraph(char *name);
+GRAPH *createGraph(char *name, void *metadata);
 NODE *createNode(GRAPH *graph, char *key, void *data);
 EDGE *createEdge(float weight, NODE *destinationNode);
 int insertEdge(EDGE **nodeList, float weight, NODE *destinationNode);

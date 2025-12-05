@@ -17,7 +17,6 @@ MD *createMetadata(int populationSize)
     newMd->quarantined = 0;
     
     // Auxiliares utilizados bajo demanda
-    newMd->utilities = NULL;
     newMd->infectedList = NULL;
     newMd->quarantineList = (PERSON**)malloc(sizeof(PERSON*) * (int)(populationSize*0.3)); // La cuarentena solo puede albergar al 30% de las personas
     newMd->contagionHistory = createWrap(); // Este es una cola asi

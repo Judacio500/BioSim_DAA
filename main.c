@@ -3,15 +3,15 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<string.h> 
-#include <math.h>
+#include<math.h>
+#include<cfloat>
+
 
 // Librerias Personales
 #include"graph.h"
 #include"list.h"
 #include"hash.h"
 #include"heap.h"
-
-VIRUS viruses[50];
 
 // Para la ruta y extensión
 char *path = "Ciudades/";
@@ -45,6 +45,9 @@ char *cityNames[] =
 int nCities = 20;
 char keyBuffer[20];
 int eCrit = 0; // Criterio de evaluacion de personas
+int currentSortAlg = 1; // 1: Heap, 2: Quick, 3: Merge
+int currentCityIdx = 0; // Ciudad seleccionada para visualizar
+int dayCount = 0;       // Contador de dias simulados
 
 typedef enum 
 {
@@ -117,7 +120,7 @@ typedef struct metadata
     int nPopulation;            // Cantidad de personas en esta ciudad
     int quarantined;
     struct list *infectedList;      // Lista rápida de infectados activos
-    struct person **quarantineList; // Array de "en cuarentena" como los espacios para cuarentena seran limitados esto es una decision de diseño perfecta 
+    struct person **quarantineArray; // Array de "en cuarentena" como los espacios para cuarentena seran limitados esto es una decision de diseño perfecta 
     struct queue *contagionHistory; // Cola que guarda el historial de contagios, ordenado por defecto segun el dia en el que sucedio
 }MD;
 
@@ -130,17 +133,348 @@ typedef struct city
     GRAPH *people; // El grafo interno de personas
 }CITY;
 
-MD *createMetadata();
+// UTILIDADES 
+int clearScreen();
+int printConfig();
+HealthState stringToState(char *str);
+int healthStateToString(HealthState state, char *buffer);
+
+// CONSTRUCTORES
+CITY *createCity(int id, char *name, int population);
+CONTAGION *createContagion(int day, int sourceId, char *sourceName, int targetId, char *targetName, char *virusName);
+D_STATE *createDstate(NODE *state, float cost);
+MD *createMetadata(int populationSize);
+PERSON *createPerson(int id, char *name, char *cityKey, char *personKey, HealthState init, int virusID);
+
+// CARGA DE DATOS
+int loadViruses();
+int loadData();
+int generateInterCityConnections();
+
+// ALGORITMOS DE ORDENAMIENTO (MANAGER Y RECURSIVOS)
+PERSON **heapSort(PERSON **population, int n);
+PERSON **mergeSort(PERSON **arr, int low, int high);
+int mSort(PERSON **arr, int low, int high);
+int merge(PERSON **arr, int low, int m, int high);
+PERSON **quickSort(PERSON **arr, int low, int high);
+int qSort(PERSON **arr, int low, int high);
+int partition(PERSON **arr, int low, int high);
+int applySorting(CITY *c);
+
+// ALGORITMOS AUXILIARES
+int swap(PERSON **a, PERSON **b);
+int copy(PERSON **src, PERSON **dest, int size);
+int criteria(PERSON *p1, PERSON *p2, int eval);
+int compare(void *person1, void *person2);
+int comparePerson(void *person1, void *person2);
+int compareRecovery(void *a, void *b);
+int compareRisk(void *a, void *b);
+int compareDijkstra(void *a, void *b);
+
+// LÓGICA DE SIMULACIÓN Y EPIDEMIA
+void simulationCallback(void *data, void *param);
+int stepSimulation(int day);
+int detectOutbreak(GRAPH *peopleGraph);
+int bfsCluster(GRAPH *g, PERSON *start, HASH *visited);
+
+// CUARENTENA
+int applySmartQuarantine(CITY *c, int budget);
+int releaseRecovered(CITY *c);
+
+// CLUSTERING Y RUTAS
+int clusterViruses();
+LIST *findCriticalPath(NODE *start, NODE *target);
+void destroyFloat(void *data);
+
+// CONSULTAS Y REPORTES 
+int printTable(PERSON **arr, int n, char *title);
+int reportPerson(char *cityName, char *personName);
+int reportCity(char *cityName);
+
+// MENUS
+int menuConfiguration();
+int menuAnalysis();
 
 // Grafo inicial
 // Sus nodos son ciudades
 // La clave hash de cada ciudad es su nombre
 // Global porque no usamos multi hilo :D
 GRAPH *map = NULL;
+VIRUS viruses[50];
+
+
+//                //
+//                //
+//      MENUS     // 
+//                //
+//                //
+
 
 int main(int argc, char const *argv[])
 {
+    printf("Iniciando BioSim...\n");
+    
+    // 1. Carga de Datos
+    loadData();
+    
+    // Aseguramos criterio por defecto
+    eCrit = 4; // ID
 
+    int option = 0;
+    while(option != 4)
+    {
+        clearScreen();
+        printf("========================================\n");
+        printf("   BIOSIM - PANEL DE CONTROL\n");
+        printf("========================================\n");
+        printf("1. Avanzar Simulacion (Siguiente Dia)\n");
+        printf("2. Analisis de Datos\n");
+        printf("3. Configuracion (Ordenamiento/Vista)\n");
+        printf("4. Salir\n");
+        printf("----------------------------------------\n");
+        printf("Dia Actual: %d\n", dayCount);
+        printf("Ciudad Foco: %s\n", cityNames[currentCityIdx]);
+        printf("----------------------------------------\n");
+        printf("Seleccion: ");
+        scanf("%d", &option);
+
+        if(option == 1)
+        {
+            stepSimulation(dayCount);
+            dayCount++;
+            
+            // Mostramos un resumen rapido de la ciudad foco
+            reportCity(cityNames[currentCityIdx]);
+            
+            printf("\nSimulacion del dia completada.\nPresione Enter...");
+            getchar(); getchar();
+        }
+        else if(option == 2)
+        {
+            menuAnalysis();
+        }
+        else if(option == 3)
+        {
+            menuConfiguration();
+        }
+    }
+
+    printf("Cerrando sistema...\n");
+    return 0;
+}
+
+
+int clearScreen()
+{
+    // Simulacion de limpieza multiplataforma simple
+    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    return 0;
+}
+
+int printConfig()
+{
+    char *algName = "";
+    if(currentSortAlg == 1) algName = "HeapSort";
+    else if(currentSortAlg == 2) algName = "QuickSort";
+    else algName = "MergeSort";
+
+    char *critName = "";
+    switch(eCrit)
+    {
+        case 1: critName = "Riesgo Infeccion (Desc)"; break;
+        case 2: critName = "Dias Infectado (Desc)"; break;
+        case 3: critName = "Nombre (A-Z)"; break;
+        case 4: critName = "ID (Asc)"; break;
+        default: critName = "Default"; break;
+    }
+
+    printf(" [CONFIGURACION ACTUAL]\n");
+    printf(" Ciudad Objetivo: %s\n", cityNames[currentCityIdx]);
+    printf(" Algoritmo:       %s\n", algName);
+    printf(" Criterio:        %s\n", critName);
+    printf(" Dia Actual:      %d\n", dayCount);
+    printf("----------------------------------------\n");
+    return 0;
+}
+
+int applySorting(CITY *c)
+{
+    if(!c) 
+        return -1;
+
+    MD *meta = (MD*)c->people->metadata;
+    PERSON **sorted = NULL;
+
+    // Aplicamos el algoritmo seleccionado como plugin
+    // Se genera una nueva vista ordenada
+    if(currentSortAlg == 1)
+        sorted = heapSort(meta->population, meta->nPopulation);
+    else if(currentSortAlg == 2)
+        sorted = quickSort(meta->population, 0, meta->nPopulation - 1);
+    else
+        sorted = mergeSort(meta->population, 0, meta->nPopulation - 1);
+
+    if(sorted)
+    {
+        // Reemplazo in-place del arreglo principal
+        // Liberamos el arreglo viejo de punteros (no los datos) y asignamos el nuevo
+        free(meta->population);
+        meta->population = sorted;
+        return 1;
+    }
+    return 0;
+}
+
+int menuConfiguration()
+{
+    int option = 0;
+    while(option != 4)
+    {
+        clearScreen();
+        printf("=== CONFIGURACION ===\n");
+        printf("1. Cambiar Algoritmo de Ordenamiento\n");
+        printf("2. Cambiar Criterio de Ordenamiento\n");
+        printf("3. Cambiar Ciudad Objetivo (Visualizacion)\n");
+        printf("4. Volver\n");
+        printConfig();
+        printf("Seleccion: ");
+        scanf("%d", &option);
+
+        if(option == 1)
+        {
+            printf("\n1. HeapSort (O(n log n))\n2. QuickSort (O(n log n))\n3. MergeSort (O(n log n))\nElegir: ");
+            scanf("%d", &currentSortAlg);
+            if(currentSortAlg < 1 || currentSortAlg > 3) 
+                currentSortAlg = 1;
+        }
+        else if(option == 2)
+        {
+            printf("\n1. Riesgo (Desc)\n2. Dias Enf. (Desc)\n3. Nombre (A-Z)\n4. ID (Asc)\nElegir: ");
+            scanf("%d", &eCrit);
+            if(eCrit < 1 || eCrit > 4)
+                eCrit = 4;
+        }
+        else if(option == 3)
+        {
+            printf("\nSeleccione ID de ciudad (0-%d):\n", nCities-1);
+            for(int i=0; i<nCities; i++)
+                printf("%d. %s\n", i, cityNames[i]);
+            
+            int newIdx;
+            scanf("%d", &newIdx);
+            if(newIdx >= 0 && newIdx < nCities)
+                currentCityIdx = newIdx;
+        }
+    }
+    return 0;
+}
+
+int menuAnalysis()
+{
+    int option = 0;
+    while(option != 5)
+    {
+        clearScreen();
+        printf("=== ANALISIS DE DATOS ===\n");
+        printf("1. Tabla de Habitantes (Ordenada)\n");
+        printf("2. Clustering de Cepas\n");
+        printf("3. Consulta Individual (Ficha Medica)\n");
+        printf("4. Ruta Critica (Dijkstra)\n");
+        printf("5. Volver\n");
+        printConfig();
+        printf("Seleccion: ");
+        scanf("%d", &option);
+
+        if(option == 1)
+        {
+            NODE *n = hashNode(map, cityNames[currentCityIdx]);
+            if(n)
+            {
+                CITY *c = (CITY*)n->data;
+                
+                // Ordenamos in-place antes de mostrar
+                applySorting(c);
+                
+                // Construccion del titulo dinamico
+                char titleBuffer[100];
+                const char *critStr = (eCrit == 1) ? "Riesgo" : (eCrit == 2) ? "Dias" : (eCrit == 3) ? "Nombre" : "ID"; 
+                // Const para que acepte la cadena estatica
+                sprintf(titleBuffer, "Habitantes %s Ordenado por %s", c->name, critStr);
+                
+                MD *meta = (MD*)c->people->metadata;
+                printTable(meta->population, meta->nPopulation, titleBuffer);
+                
+                printf("Presione Enter para continuar...");
+                getchar(); getchar();
+            }
+        }
+        else if(option == 2)
+        {
+            clusterViruses();
+            printf("Presione Enter para continuar...");
+            getchar(); getchar();
+        }
+        else if(option == 3)
+        {
+            char pName[100];
+            printf("Ingrese Nombre_Apellido (Ej. Juan_Perez): ");
+            scanf("%s", pName);
+            
+            // Usamos la ciudad seleccionada como contexto
+            reportPerson(cityNames[currentCityIdx], pName);
+            
+            printf("Presione Enter para continuar...");
+            getchar(); getchar();
+        }
+        else if(option == 4)
+        {
+            char startName[100], targetName[100];
+            printf("Origen (Nombre_Apellido): ");
+            scanf("%s", startName);
+            printf("Destino (Nombre_Apellido): ");
+            scanf("%s", targetName);
+
+            NODE *cityNode = hashNode(map, cityNames[currentCityIdx]);
+            if(cityNode)
+            {
+                CITY *c = (CITY*)cityNode->data;
+                NODE *nStart = hashNode(c->people, startName);
+                NODE *nTarget = hashNode(c->people, targetName);
+
+                if(nStart && nTarget)
+                {
+                    LIST *pathList = findCriticalPath(nStart, nTarget);
+                    if(pathList)
+                    {
+                        printf("\n[RUTA CRITICA ENCONTRADA]\n");
+                        int steps = 0;
+                        while(pathList)
+                        {
+                            NODE *step = (NODE*)pathList->data;
+                            PERSON *p = (PERSON*)step->data;
+                            printf(" %d. %s (Riesgo: %.2f)\n", steps++, p->name, p->infRisk);
+                            
+                            if(pathList->next) printf("    |\n    v\n");
+                            pathList = pathList->next;
+                        }
+                        // Liberamos la lista, no los nodos
+                        freeList(&pathList, NULL);
+                    }
+                    else
+                    {
+                        printf("No existe un camino de riesgo entre estas personas.\n");
+                    }
+                }
+                else
+                {
+                    printf("Personas no encontradas en %s.\n", c->name);
+                }
+            }
+            printf("Presione Enter para continuar...");
+            getchar(); getchar();
+        }
+    }
+    return 0;
 }
 
 
@@ -222,9 +556,8 @@ MD *createMetadata(int populationSize)
     newMd->quarantined = 0;
     
     // Auxiliares utilizados bajo demanda
-    newMd->utilities = NULL;
     newMd->infectedList = NULL;
-    newMd->quarantineList = (PERSON**)malloc(sizeof(PERSON*) * (int)(populationSize*0.3)); // La cuarentena solo puede albergar al 30% de las personas
+    newMd->quarantineArray = (PERSON**)malloc(sizeof(PERSON*) * (int)(populationSize*0.3)); // La cuarentena solo puede albergar al 30% de las personas
     newMd->contagionHistory = createWrap(); // Este es una cola asi
                                             // Que basada en mi libreria necesita un wrapper
 
@@ -299,8 +632,8 @@ int loadData()
         int cityPop = atoi(line);
 
         // Creamos la ciudad con sus metadatos y su grafo de personas
-        CITY *c = createCity(i,&cityNames[i],cityPop);
-l
+        CITY *c = createCity(i,cityNames[i],cityPop);
+
         // Añadimos al grafo global la nueva ciudad
         addNode(map, c->name, c);  // Esta funcion incluye hasheo
 
@@ -427,7 +760,7 @@ l
         // printf("Ciudad cargada: %s (%d habitantes)\n", c->name, pIndex);
     }
 
-    generateInterCityConnections() // Generar conexiones con personas en otras ciudades 
+    generateInterCityConnections();// Generar conexiones con personas en otras ciudades 
                                    // Para dejar que una enfermedad se propague
 
     return 0;
@@ -1461,7 +1794,7 @@ void simulationCallback(void *data, void *param)
             if(currentNode->graph && currentNode->graph->metadata)
             {
                 MD *cityMeta = (MD*)currentNode->graph->metadata;
-                append(cityMeta->contagionHistory, log, 0); // Encolamos el log del contagio a los contagios por ciudad
+                append(&cityMeta->contagionHistory, log, 0); // Encolamos el log del contagio a los contagios por ciudad
             }
 
             // Agendamos el cambio de estado al finalizar
@@ -1657,7 +1990,7 @@ int criteria(PERSON *p1, PERSON *p2, int eval) // AUXILIA -> SORTING EN GENERAL
     }
 }
 
-int copy(PERSON **src, PERSON *dest, int size) // AUXILIA MERGE SORT Y QUICK SORT 
+int copy(PERSON **src, PERSON **dest, int size) // AUXILIA MERGE SORT Y QUICK SORT 
 {
     if(!src || !dest)
         return NULL;
