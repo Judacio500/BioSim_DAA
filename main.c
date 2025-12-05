@@ -12,6 +12,38 @@
 
 VIRUS viruses[50];
 
+// Constantes para la ruta y extensión
+char *path = "Ciudades/";
+char *ext = ".txt";
+
+// Solo los nombres de las ciudades
+char *cityNames[] = 
+{
+    "Anorlondo",
+    "Arabasta",
+    "Ashina",
+    "Caelid",
+    "CityOfTears",
+    "Deepnest",
+    "Dirtmouth",
+    "Konoha",
+    "Limgrave",
+    "Liurnia",
+    "London",
+    "Lothric",
+    "Majula",
+    "Mexico",
+    "NewYork",
+    "Paris",
+    "Skypiea",
+    "Tokyo",
+    "Wano",
+    "Water7"
+};
+
+int nCities = 20;
+char keyBuffer[20];
+
 typedef enum 
 {
     SUSCEPTIBLE,
@@ -51,7 +83,7 @@ typedef struct person
                         // Se tomo esta decision porque un nombre es muy largo para ser una llave Hash
     
     char cityKey[50];      // Llave de la ciudad en la que reside este individuo utilizable en el hash
-    
+    char personKey[20];
     HealthState state;       // Estado actual (Sano, Infectado, etc.)
     int daysInfected;        // Contador para saber cuándo se recupera (vs virus->recovery)
     float globalRisk;        // Riesgo calculado globalmente para el Heap de Aislamiento
@@ -96,6 +128,7 @@ typedef struct city
     GRAPH *people; // El grafo interno de personas
 }CITY;
 
+int eCrit = 0; // Criterio de evaluacion de personas
 
 MD *createMetadata();
 
