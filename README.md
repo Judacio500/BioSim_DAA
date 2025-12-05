@@ -75,4 +75,6 @@ Demostrar acceso eficiente $O(1)$ a datos e historial.
 * **Estrategia:** Uso anidado de Hashes (`Ciudad` -> `Persona`) y acceso directo a la `Queue` de historial.
 
 **Checklist:**
-- [ ] `void querySystem(char *city, char *personName)`: Muestra datos de la persona y el primer/último contagio registrado en O(1).
+- [x] `int printTable(PERSON **arr, int n, char *title)`: Ordena los datos.
+- [x] `int reportPerson(char *cityName, char *personName)`: busca los datos de la personas especificas.
+- [x] `int reportCity(char *cityName)`: busca los habitantes de la ciudad.
