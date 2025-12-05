@@ -11,7 +11,6 @@ PERSON **quickSort(PERSON **arr, int low, int high)
     qSort(mockUp,0,high);
 
     return mockUp;
-
 }
 
 int qSort(PERSON **arr, int low, int high)

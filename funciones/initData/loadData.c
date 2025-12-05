@@ -18,7 +18,6 @@ int loadData()
 
     char filepath[100];
     char line[256];
-    int TotalPopulation = 0;
 
     for(int i = 0; i<nCities; i++)
     {
@@ -93,39 +92,71 @@ l
             addNode(c->people, p->personKey, p);
             
             // Conectamos a cada persona con la anterior para asegurar que el grafo no son nodos sueltos
-            if(pIndex > 0)
+            // solo para el primer 10% de la poblacion
+            // esto nos asegura que el grafo este conectado al 100%
+            // el decimo individuo de hecho se conecta ademas aleatoriamente con otros nodos
+            if(pIndex > 0 && pIndex <= (int)(0.1*cityPop))
             {
                 PERSON *prev = meta->population[pIndex - 1];
-                // Peso 1.0, Grafo Bidireccional
                 addEdge(c->people, p->personKey, prev->personKey, 1.0f, 2);
             }
             
             // Si ya tenemos el 10% de los elementos de la poblacion:
-            if(pIndex >= (int)(0.1*cityPop))
+            if(pIndex >= (int)(0.1 * cityPop))
             {
-                // Agregamos el 4% de conexiones extra con personas aleatorias que ya existen en el grafo
-                int extraConnections = (int)(0.04*cityPop); 
+                // Del 1 al 100 para simular porcentajes de poblacion
+                int roll = (rand() % 100) + 1; 
+                float connectionPercent; 
+
+                // Asignacion basada en la aproximacion de una distribucion normal
+                // Media: 5% | Extremos: 2% y 8%
+                
+                if (roll <= 5)        // 5% de la poblacion 
+                    connectionPercent = 0.02f; 
+                else if (roll <= 20)  // 15% de la poblacion
+                    connectionPercent = 0.03f; 
+                else if (roll <= 40)  // 20% de la poblacion 
+                    connectionPercent = 0.04f; 
+                else if (roll <= 60)  // 20% de la poblacion 
+                    connectionPercent = 0.05f; 
+                else if (roll <= 80)  // 20% de la poblacion
+                    connectionPercent = 0.06f; 
+                else if (roll <= 95)  // 15% de la poblacion
+                    connectionPercent = 0.07f; 
+                else                  // 5% de la poblacion
+                    connectionPercent = 0.08f; 
+
+                int extraConnections = (int)(connectionPercent * cityPop); 
+                
+                if (extraConnections == 0 && cityPop > 10) 
+                    extraConnections = 1;
+                
+                if (extraConnections > pIndex) 
+                    extraConnections = pIndex - 1;
 
                 for(int k = 0; k < extraConnections; k++)
                 {
-
-                    int rIdx = rand() % (pIndex - 1); 
-
-                    if(rIdx == pIndex)
-                    {
-                        k--;
-                        continue;
-                    }
+                    int rIdx = rand() % pIndex; 
+                    
+                    if (rIdx == pIndex) // No nos conectamos a nosotros mismos 
+                    { 
+                        k--;            // Aseguramos las n conexiones calculadas
+                        continue; 
+                    } 
 
                     PERSON *randomNeighbor = meta->population[rIdx];
 
-                    // Generamos un peso aleatorio entre 0.1 y 1.0 para simular
-                    // cercania que sera importante para el calculo de probabilidades de contagio
-                    // Es mas probable contagiarte con alguien que ves a diario que 
-                    // con alguien que saludas en la calle cada 7 dias
-                    float weight = (float)((rand() % 10) + 1) / 10.0f; 
+                    // PESO DINÁMICO
+                    // En este modelo las personas mas sociables
+                    // son mas propensas a tener lazos mas debiles
+                    // esto provoca que aunque tienen mas conexiones (foco de infeccion)
+                    // tambien son menos propensos a contagiar
+                    float weight;
+                    if(connectionPercent > 0.06f)
+                        weight = (float)((rand() % 5) + 1) / 10.0f; // 0.1 a 0.5
+                    else
+                        weight = (float)((rand() % 6) + 5) / 10.0f; // 0.5 a 1.0
 
-                    // Conexion bidireccional de nuevo ergo ambos se conocen
                     addEdge(c->people, p->personKey, randomNeighbor->personKey, weight, 2);
                 }
             }
@@ -136,6 +167,9 @@ l
         fclose(fp);
         // printf("Ciudad cargada: %s (%d habitantes)\n", c->name, pIndex);
     }
+
+    generateInterCityConnections() // Generar conexiones con personas en otras ciudades 
+                                   // Para dejar que una enfermedad se propague
 
     return 0;
 }
