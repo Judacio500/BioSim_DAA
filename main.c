@@ -696,9 +696,14 @@ int loadData()
             if(!token) continue;
             int vID = atoi(token);
 
-            // --- GENERACION DE DATOS ---
+            
             char pKey[20];
             sprintf(pKey, "%.3s%d", firstName, id);
+
+            /*
+            char pKey[50]; 
+            strcpy(pKey, fullName); // Clave = "Gwyndolin_DarkSun"
+            */
 
             // Creamos persona
             PERSON *p = createPerson(id, fullName, c->name, pKey, state, vID);
