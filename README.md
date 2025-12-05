@@ -41,8 +41,8 @@ Aislar nodos claves (Cuarentena) usando un enfoque Greedy.
 * **Estrategia:** Calcular riesgo individual y usar un **MaxHeap** temporal para seleccionar los nodos más peligrosos según el presupuesto.
 
 **Checklist:**
-- [ ] `void calculateGlobalRisk(GRAPH *people)`: Cálculo lineal sobre el array `population`.
-- [ ] `void applyQuarantine(GRAPH *people, int budget)`: Uso de Heap para seleccionar y aislar (flag `quarantine=true`).
+- [x] `void releaseRecovered(CITY *c)`: Criterio de orden en la cuarentena segun la recuperacion.
+- [x] `int applySmartQuarantine(CITY *c, int budget)`: Mantener en cuarentena a las personas de mayor riesgo global.
 
 ## 5. Identificación de Rutas Críticas (Dijkstra)
 **Explicación:**
