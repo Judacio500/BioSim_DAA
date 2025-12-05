@@ -59,8 +59,7 @@ typedef enum
 typedef struct DijkstraState 
 {
     struct node *currentNode;
-    float accumulatedCost; // Costo acumulado o probabilidad logarítmica
-    struct node *previousNode;
+    float cost; 
 } D_STATE;
 
 typedef struct virus
