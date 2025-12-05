@@ -1,4 +1,4 @@
-PERSON *createPerson(int id, char *name, char *cityKey, HealthState init, int virusID)
+PERSON *createPerson(int id, char *name, char *cityKey, char *personKey, HealthState init, int virusID)
 {
     PERSON *newP = (PERSON*)malloc(sizeof(PERSON));
 
@@ -8,6 +8,7 @@ PERSON *createPerson(int id, char *name, char *cityKey, HealthState init, int vi
     newP->id = id;
     strcpy(newP->name, name);
     strcpy(newP->cityKey, cityKey);
+    strcpy(newP->personKey, personKey);
     newP->state = init;
 
     if(virusID != -1) // ID -1 significa que la persona no esta infectada al iniciar
