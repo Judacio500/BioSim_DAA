@@ -51,7 +51,7 @@ Encontrar el camino de mayor probabilidad de infección entre dos personas.
 * **Estrategia:** Dijkstra modificado. El peso de la arista se transforma a $Costo = -\log(Probabilidad)$ para maximizar la probabilidad acumulada.
 
 **Checklist:**
-- [ ] `LIST *findCriticalPath(NODE *start, NODE *target)`: Implementación de Dijkstra usando `D_STATE` y `heap.h`.
+- [x] `LIST *findCriticalPath(NODE *start, NODE *target)`: Implementación de Dijkstra usando `D_STATE` y `heap.h`.
 
 ## 6. Rutas Óptimas de Contención (Prim)
 **Explicación:**
