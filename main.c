@@ -27,7 +27,7 @@ char *cityNames[] =
     "CityOfTears",
     "Deepnest",
     "Dirtmouth",
-    "Konoha",
+    // "Konoha",
     "Limgrave",
     "Liurnia",
     "London",
@@ -42,7 +42,7 @@ char *cityNames[] =
     "Water7"
 };
 
-int nCities = 20;
+int nCities = 19;
 char keyBuffer[20];
 int eCrit = 0; // Criterio de evaluacion de personas
 int currentSortAlg = 1; // 1: Heap, 2: Quick, 3: Merge
@@ -149,7 +149,8 @@ PERSON *createPerson(int id, char *name, char *cityKey, char *personKey, HealthS
 // CARGA DE DATOS
 int loadViruses();
 int loadData();
-int generateInterCityConnections();
+void generateInterCityConnections();
+void trim(char *s);
 
 // ALGORITMOS DE ORDENAMIENTO (MANAGER Y RECURSIVOS)
 PERSON **heapSort(PERSON **population, int n);
@@ -599,169 +600,176 @@ PERSON *createPerson(int id, char *name, char *cityKey, char *personKey, HealthS
 //                         //
 
 
+void trim(char *s) {
+    if (!s) return;
+    int len = strlen(s);
+    while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r' || s[len - 1] == ' ')) {
+        s[len - 1] = '\0';
+        len--;
+    }
+}
+
 int loadData()
 {
-    // cargamos las 50 cepas
+    // 1. Cargar las 50 cepas
     loadViruses();
 
+    // 2. Inicializar Grafo Global
     map = createGraph("Map", NULL); 
+    if (!map) {
+        printf("[FATAL] No se pudo inicializar el mapa global.\n");
+        return -1;
+    }
 
     FILE *fp = NULL;
-
     char filepath[100];
-    char line[256];
+    char line[512]; // Buffer más grande por seguridad
 
-    for(int i = 0; i<nCities; i++)
+    printf("Iniciando carga de ciudades...\n");
+
+    for(int i = 0; i < nCities; i++)
     {
-     
         sprintf(filepath, "%s%s%s", path, cityNames[i], ext);
         fp = fopen(filepath, "r");
-        if(!fp)
-        {
-            printf("Error abriendo: %s\n", filepath);
+        
+        if(!fp) {
+            printf(" [WARN] No se pudo abrir: %s\n", filepath);
             continue;
         }
 
-        if(!fgets(line, sizeof(line), fp)) 
-        {
-            fclose(fp);
-            continue; 
-        }
-
-        // Cada archivo de ciudad guarda el numero de habitantes primero
-        int cityPop = atoi(line);
-
-        // Creamos la ciudad con sus metadatos y su grafo de personas
-        CITY *c = createCity(i,cityNames[i],cityPop);
-
-        // Añadimos al grafo global la nueva ciudad
-        addNode(map, c->name, c);  // Esta funcion incluye hasheo
-
-        int pIndex = 0;
+        // --- LECTURA DE POBLACION (CABECERA) ---
+        if(!fgets(line, sizeof(line), fp)) { fclose(fp); continue; }
         
+        // TRUCO ANTI-BOM: Saltamos cualquier cosa que no sea un digito al inicio
+        char *ptr = line;
+        while(*ptr && (*ptr < '0' || *ptr > '9')) ptr++;
+        
+        int cityPop = atoi(ptr);
+        
+        // Validación de seguridad de población
+        if (cityPop <= 0 || cityPop > 10000) cityPop = 100; // Fallback seguro
+
+        // Creamos Estructuras
+        CITY *c = createCity(i, cityNames[i], cityPop);
+        addNode(map, c->name, c);
+
+        // --- LECTURA DE HABITANTES ---
+        int pIndex = 0;
+        int lineNum = 1; // Para debug
+
         while(fgets(line, sizeof(line), fp))
         {
-            // Eliminar salto de linea si existe
-            line[strcspn(line, "\r\n")] = 0;
+            lineNum++;
+            trim(line); // <--- ESTO ELIMINA EL \r MALDITO DE WINDOWS
+            
+            if(strlen(line) < 3) continue; // Saltar lineas vacias
 
-            // Formato: ID,Nombre,Apellido,Estado,VirusID
+            // Parseo robusto: Copiamos la linea para no destruir la original si falla
+            // (Aunque strtok modifica, aqui vamos directo)
+            
+            char *token;
             
             // 1. ID
-            char *token = strtok(line, ",");
+            token = strtok(line, ",");
             if(!token) continue;
             int id = atoi(token);
 
             // 2. Nombre
             token = strtok(NULL, ",");
+            if(!token) continue;
             char firstName[50];
             strcpy(firstName, token);
 
-            // 3. Apellido, concatenado porque el nombre se guarda de manera simple
+            // 3. Apellido
             token = strtok(NULL, ",");
+            if(!token) continue;
             char fullName[100];
             sprintf(fullName, "%s_%s", firstName, token);
 
             // 4. Estado
             token = strtok(NULL, ",");
+            if(!token) continue;
             HealthState state = stringToState(token);
 
-            // 5. Cepa con la que inicia si corresponde (-1 si no esta infectado)
+            // 5. Virus ID
             token = strtok(NULL, ",");
+            if(!token) continue;
             int vID = atoi(token);
 
-            // Llave de la persona para el grafo
+            // --- GENERACION DE DATOS ---
             char pKey[20];
             sprintf(pKey, "%.3s%d", firstName, id);
 
+            // Creamos persona
             PERSON *p = createPerson(id, fullName, c->name, pKey, state, vID);
+            if (!p) continue; // Si malloc falla, saltamos
 
             MD *meta = (MD*)c->people->metadata;
 
-            // Nuestros datos se guardaran en 2 niveles
-            // En el grafo para operaciones complejas de relacion
-            // y en un array para sorting
-            meta->population[pIndex] = p;
-            addNode(c->people, p->personKey, p);
-            
-            // Conectamos a cada persona con la anterior para asegurar que el grafo no son nodos sueltos
-            // solo para el primer 10% de la poblacion
-            // esto nos asegura que el grafo este conectado al 100%
-            // el decimo individuo de hecho se conecta ademas aleatoriamente con otros nodos
-            if(pIndex > 0 && pIndex <= (int)(0.1*cityPop))
-            {
-                PERSON *prev = meta->population[pIndex - 1];
-                addEdge(c->people, p->personKey, prev->personKey, 1.0f, 2);
+            // Insercion segura en Array
+            if (pIndex < meta->nPopulation) {
+                meta->population[pIndex] = p;
+            } else {
+                // Si el archivo tiene mas lineas que la poblacion declarada, paramos o reallocamos
+                // Por ahora, paramos para no corromper memoria
+                break; 
             }
+
+            // Insercion en Grafo
+            addNode(c->people, p->personKey, p);
+
+            // --- CONEXIONES LOCALES ---
             
-            // Si ya tenemos el 10% de los elementos de la poblacion:
-            if(pIndex >= (int)(0.1 * cityPop))
-            {
-                // Del 1 al 100 para simular porcentajes de poblacion
+            // 1. Lineal (Nucleo duro)
+            if(pIndex > 0 && pIndex <= (int)(0.1 * cityPop)) {
+                PERSON *prev = meta->population[pIndex - 1];
+                if(prev) addEdge(c->people, p->personKey, prev->personKey, 1.0f, 2);
+            }
+
+            // 2. Aleatoria (Mundo Pequeño)
+            if(pIndex >= (int)(0.1 * cityPop)) {
+                // ... Tu logica de distribucion normal ...
                 int roll = (rand() % 100) + 1; 
                 float connectionPercent; 
-
-                // Asignacion basada en la aproximacion de una distribucion normal
-                // Media: 5% | Extremos: 2% y 8%
-                
-                if (roll <= 5)        // 5% de la poblacion 
-                    connectionPercent = 0.02f; 
-                else if (roll <= 20)  // 15% de la poblacion
-                    connectionPercent = 0.03f; 
-                else if (roll <= 40)  // 20% de la poblacion 
-                    connectionPercent = 0.04f; 
-                else if (roll <= 60)  // 20% de la poblacion 
-                    connectionPercent = 0.05f; 
-                else if (roll <= 80)  // 20% de la poblacion
-                    connectionPercent = 0.06f; 
-                else if (roll <= 95)  // 15% de la poblacion
-                    connectionPercent = 0.07f; 
-                else                  // 5% de la poblacion
-                    connectionPercent = 0.08f; 
+                if (roll <= 5) connectionPercent = 0.02f; 
+                else if (roll <= 20) connectionPercent = 0.03f; 
+                else if (roll <= 40) connectionPercent = 0.04f; 
+                else if (roll <= 60) connectionPercent = 0.05f; 
+                else if (roll <= 80) connectionPercent = 0.06f; 
+                else if (roll <= 95) connectionPercent = 0.07f; 
+                else connectionPercent = 0.08f; 
 
                 int extraConnections = (int)(connectionPercent * cityPop); 
-                
-                if (extraConnections == 0 && cityPop > 10) 
-                    extraConnections = 1;
-                
-                if (extraConnections > pIndex) 
-                    extraConnections = pIndex - 1;
+                if (extraConnections == 0 && cityPop > 10) extraConnections = 1;
+                if (extraConnections > pIndex) extraConnections = pIndex - 1;
 
-                for(int k = 0; k < extraConnections; k++)
-                {
+                for(int k = 0; k < extraConnections; k++) {
                     int rIdx = rand() % pIndex; 
+                    if (rIdx == pIndex) { k--; continue; } 
                     
-                    if (rIdx == pIndex) // No nos conectamos a nosotros mismos 
-                    { 
-                        k--;            // Aseguramos las n conexiones calculadas
-                        continue; 
-                    } 
-
                     PERSON *randomNeighbor = meta->population[rIdx];
-
-                    // PESO DINÁMICO
-                    // En este modelo las personas mas sociables
-                    // son mas propensas a tener lazos mas debiles
-                    // esto provoca que aunque tienen mas conexiones (foco de infeccion)
-                    // tambien son menos propensos a contagiar
-                    float weight;
-                    if(connectionPercent > 0.06f)
-                        weight = (float)((rand() % 5) + 1) / 10.0f; // 0.1 a 0.5
-                    else
-                        weight = (float)((rand() % 6) + 5) / 10.0f; // 0.5 a 1.0
-
-                    addEdge(c->people, p->personKey, randomNeighbor->personKey, weight, 2);
+                    if(randomNeighbor) {
+                        float weight = (connectionPercent > 0.06f) ? 
+                                       ((float)((rand() % 5) + 1) / 10.0f) : 
+                                       ((float)((rand() % 6) + 5) / 10.0f);
+                        addEdge(c->people, p->personKey, randomNeighbor->personKey, weight, 2);
+                    }
                 }
             }
-
+            
+            // SOLO incrementamos si todo salio bien
             pIndex++;
         }
+        
+        // Actualizamos la poblacion real leida por si el archivo mentia
+        MD *meta = (MD*)c->people->metadata;
+        meta->nPopulation = pIndex; // Ajuste final de verdad
 
         fclose(fp);
-        // printf("Ciudad cargada: %s (%d habitantes)\n", c->name, pIndex);
     }
 
-    generateInterCityConnections();// Generar conexiones con personas en otras ciudades 
-                                   // Para dejar que una enfermedad se propague
+    // Finalmente, tejemos la red global
+    generateInterCityConnections();
 
     return 0;
 }
@@ -798,80 +806,81 @@ int loadViruses()
     el grafo local
 */
 
-int generateInterCityConnections()
+void generateInterCityConnections()
 {
     printf("Generando conexiones internacionales...\n");
 
-    // Doble bucle para conectar Ciudad A con Ciudad B esto es O(n^2) 
     for(int i = 0; i < nCities; i++)
     {
-
         NODE *nodeA = hashNode(map, cityNames[i]);
-        if(!nodeA) 
-            continue;
-        CITY *cityA = (CITY*)nodeA->data;           // Obtenemos la ciudad A
+        if(!nodeA) continue;
+        
+        CITY *cityA = (CITY*)nodeA->data;
         MD *metaA = (MD*)cityA->people->metadata;
 
         for(int j = 0; j < nCities; j++)
         {
-            if(i == j) 
-                continue; // No conectar ciudad consigo misma (pues las conexiones locales ya se generaron anteriormente)
+            if(i == j) continue; 
 
-            NODE *nodeB = hashNode(map, cityNames[j]);  // Obtenemos la ciudad B
-            if(!nodeB) 
-                continue;
+            NODE *nodeB = hashNode(map, cityNames[j]);
+            if(!nodeB) continue;
+            
             CITY *cityB = (CITY*)nodeB->data;
             MD *metaB = (MD*)cityB->people->metadata;
 
-            // Garantizamos la primera conexion entre ciudades
-            // lo que se traduce a que todo el grafo siempre
-            // SIEMPRE, esta conectado
-
-            int rA = rand() % metaA->nPopulation;
-            int rB = rand() % metaB->nPopulation;
-            
-            NODE *nA = hashNode(cityA->people, metaA->population[rA]->personKey);
-            NODE *nB = hashNode(cityB->people, metaB->population[rB]->personKey);
-            
-            if(nA && nB)
+            // --- 1. PUENTE CERO GARANTIZADO ---
+            // Aseguramos que los grafos no queden aislados
+            if (metaA->nPopulation > 0 && metaB->nPopulation > 0)
             {
-                 float w = (float)((rand() % 3) + 1) / 10.0f;
-                 addEdgeThrough(nA, nB, w, 2);
+                int rA = rand() % metaA->nPopulation;
+                int rB = rand() % metaB->nPopulation;
+                
+                PERSON *bridgeA = metaA->population[rA];
+                PERSON *bridgeB = metaB->population[rB];
+
+                // PARCHE DE SEGURIDAD 1: Validar punteros antes de hashear
+                if(bridgeA && bridgeB && bridgeA->personKey && bridgeB->personKey)
+                {
+                    NODE *nA = hashNode(cityA->people, bridgeA->personKey);
+                    NODE *nB = hashNode(cityB->people, bridgeB->personKey);
+                    
+                    if(nA && nB)
+                    {
+                         float w = (float)((rand() % 3) + 1) / 10.0f;
+                         addEdgeThrough(nA, nB, w, 2);
+                    }
+                }
             }
 
-            // Dejamos fijo el numero de conexiones a un 2%
+            // --- 2. CONEXIONES MASIVAS (30%) ---
             int nConnections = (int)ceil(0.002 * cityB->population);
             if(nConnections < 1) nConnections = 1;
 
-            // Para cada habitante de ciudad A
             for(int k = 0; k < metaA->nPopulation; k++)
             {
-                // Un 30% de tener conexiones en esa ciudad
+                // PARCHE DE SEGURIDAD 2: Validar persona origen
+                PERSON *pA = metaA->population[k];
+                if (!pA || !pA->personKey) continue; 
+
+                // Probabilidad 30%
                 if((rand() % 100) < 30) 
                 {
-                    PERSON *pA = metaA->population[k];
+                    NODE *n1 = hashNode(cityA->people, pA->personKey);
+                    if(!n1) continue; // Si falla el hash, saltamos
 
-                    // Buscamos su NODO real en el grafo A (para poder crear la arista)
-                    NODE *n1 = hashNode(cityA->people, pA->personKey); // obtenemos el nodo
-
-                    // Generamos las n conexiones calculadas 
                     for(int c = 0; c < nConnections; c++)
                     {
-                        // Elegimos un random en Ciudad B
                         int rIdx = rand() % metaB->nPopulation;
                         PERSON *pB = metaB->population[rIdx];
                         
-                        // Buscamos su NODO real en el grafo B
+                        // PARCHE DE SEGURIDAD 3: Validar persona destino
+                        if (!pB || !pB->personKey) continue;
+
                         NODE *n2 = hashNode(cityB->people, pB->personKey);
 
-                        if(n1 && n2) // Seguridad de haber hasheado correctamente los 2 nodos
+                        if(n2)
                         {
-                            // PESO DÉBIL (0.1 a 0.3)
-                            // Simula contacto esporádico o digital 
                             float weight = (float)((rand() % 3) + 1) / 10.0f;
-
-                            // Usamos addEdgeThrough como explique anteriormente pues vienen de grafos distintos
-                            // De hecho esta es la conexion normal de un grafo, regularmente no se conectan por hash X D
                             addEdgeThrough(n1, n2, weight, 2);
                         }
                     }
@@ -888,6 +897,7 @@ int generateInterCityConnections()
 //   ORDENAMIENTO   // 
 //                  //
 //                  //
+
 
 // HEAP SORT
 PERSON **heapSort(PERSON **population, int n)
@@ -1547,6 +1557,8 @@ int printTable(PERSON **arr, int n, char *title)
     }
     printf("--------------------------------------------------------------------------------------\n");
     printf("Total listados: %d\n\n", n);
+
+    return 0;
 }
 
 int reportPerson(char *cityName, char *personName)
@@ -1592,6 +1604,8 @@ int reportPerson(char *cityName, char *personName)
     printf(" Riesgo Global: %.4f (Potencial de contagio)\n", p->globalRisk);
     printf(" Estatus: \t%s\n", p->quarantine ? "[ EN CUARENTENA ]" : "LIBRE");
     printf("========================================\n");
+
+    return 0;
 }
 
 int reportCity(char *cityName)
@@ -1640,6 +1654,7 @@ int reportCity(char *cityName)
         printf(" [!] No se han registrado contagios en esta zona.\n");
     }
     printf("========================================\n");
+    return 0;
 }
 
 
