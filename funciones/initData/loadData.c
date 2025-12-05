@@ -1,9 +1,14 @@
 HealthState stringToState(char *str)
 {
-    if(strcmp(str, "SUSCEPTIBLE") == 0) return SUSCEPTIBLE;
-    if(strcmp(str, "INFECTADO") == 0) return INFECTADO;
-    if(strcmp(str, "VACUNADO") == 0) return VACUNADO;
-    if(strcmp(str, "RECUPERADO") == 0) return RECUPERADO;
+    if(strcmp(str, "SUSCEPTIBLE") == 0) 
+        return SUSCEPTIBLE;
+    if(strcmp(str, "INFECTADO") == 0) 
+        return INFECTADO;
+    if(strcmp(str, "VACUNADO") == 0) 
+        return VACUNADO;
+    if(strcmp(str, "RECUPERADO") == 0) 
+        return RECUPERADO;
+    
     return FALLECIDO;
 }
 
