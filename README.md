@@ -11,9 +11,9 @@ El objetivo es cargar la "BD" desde un archivo de texto, instanciar las estructu
 - [x] `Constructores de estructuras`: PERSONA, CIUDAD, LOG DE CONTAGIOS Y METADATA
 - [x] `int loadData()`: Carga todos los datos de Ciudades/Personas/Cepas.
 - [x] `int loadViruses()`: Carga las 50 cepas del archivo de datos.
-- [ ] `PERSON **mergeSort(PERSON **arr, int low, int high)`: Algoritmo 1 (Estable).
-- [ ] `PERSON **quickSort(PERSON **arr, int low, int high)`: Algoritmo 2 (Rápido).
-- [ ] `PERSON **heapSort(PERSON **arr, int n)`: Algoritmo 3 (Usando librería `heap.h`).
+- [x] `PERSON **mergeSort(PERSON **arr, int low, int high)`: Algoritmo 1 .
+- [x] `PERSON **quickSort(PERSON **arr, int low, int high)`: Algoritmo 2 .
+- [x] `PERSON **heapSort(PERSON **arr, int n)`: Algoritmo 3 (Usando librería `heap.h`).
 - [ ] `void *populateGraphs(GRAPH *cities)`: Inserta nodos y aristas en el grafo desde el array ordenado.
 
 ## 2. Detección de Brotes
