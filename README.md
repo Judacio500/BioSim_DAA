@@ -2,7 +2,7 @@
 
 Plan de implementación para el Simulador Algorítmico de Epidemias.
 
-## 1. Inicialización y Análisis de Datos (Los 4 Sorts)
+## 1. Inicialización y Análisis de Datos (Los 3 Sorts)
 **Explicación:**
 El objetivo es cargar la "BD" desde un archivo de texto, instanciar las estructuras y demostrar 4 algoritmos de ordenamiento de complejidad $O(n \log n)$.
 * **Estrategia:** No insertar directo al grafo. Leer archivo -> Llenar array `population` en Metadata -> Ejecutar Sorts sobre el array -> Poblar el grafo `city->people`.
